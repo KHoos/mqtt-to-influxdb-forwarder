@@ -49,9 +49,9 @@ class InfluxStore(MessageStore):
         if not isinstance(data, dict):
             raise ValueError('data must be given as dict!')
         influx_msg = {
-            'measurement': measurement_name,
+            'measurement': 'environment',
             'tags': {
-                'sensor_node': node_name,
+                'sensor_address': measurement_name,
             },
             'fields': data
         }
@@ -92,7 +92,7 @@ class MQTTSource(MessageSource):
             self.logger.info("Connected with result code  %s", rc)
             # subscribe to /node_name/wildcard
             for node_name in self.node_names:
-                topic = "/{node_name}/#".format(node_name=node_name)
+                topic = "{node_name}/#".format(node_name=node_name)
                 self.logger.info(
                     "Subscribing to topic %s for node_name %s", topic, node_name)
                 client.subscribe(topic)
@@ -102,7 +102,7 @@ class MQTTSource(MessageSource):
                 "Received MQTT message for topic %s with payload %s", msg.topic, msg.payload)
             token_pattern = ur'(?:\w|-|\.)+'
             regex = re.compile(
-                ur'/(?P<node_name>' + token_pattern + ')/(?P<measurement_name>' + token_pattern + ')/?')
+                ur'(?P<node_name>' + token_pattern + ')/(?P<sensor_address>0x' + token_pattern + ')/?')
             match = regex.match(msg.topic)
             if match is None:
                 self.logger.warn(
@@ -112,7 +112,7 @@ class MQTTSource(MessageSource):
             if node_name not in self.node_names:
                 self.logger.warn(
                     "Extract node_name %s from topic, but requested to receive messages for node_name %s", node_name, self.node_name)
-            measurement_name = match.group('measurement_name')
+            measurement_name = match.group('sensor_address')
 
             value = msg.payload
 
