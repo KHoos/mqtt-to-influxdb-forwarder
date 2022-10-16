@@ -92,7 +92,7 @@ class MQTTSource(MessageSource):
             self.logger.info("Connected with result code  %s", rc)
             # subscribe to /node_name/wildcard
             for node_name in self.node_names:
-                topic = "{node_name}/#".format(node_name=node_name)
+                topic = "{node_name}/+".format(node_name=node_name)
                 self.logger.info(
                     "Subscribing to topic %s for node_name %s", topic, node_name)
                 client.subscribe(topic)
@@ -102,7 +102,7 @@ class MQTTSource(MessageSource):
                 "Received MQTT message for topic %s with payload %s", msg.topic, msg.payload)
             token_pattern = ur'(?:\w|-|\.)+'
             regex = re.compile(
-                ur'(?P<node_name>' + token_pattern + ')/(?P<sensor_address>0x' + token_pattern + ')/?')
+                ur'(?P<node_name>' + token_pattern + ')/(?P<sensor_address>' + token_pattern + ')/?')
             match = regex.match(msg.topic)
             if match is None:
                 self.logger.warn(
@@ -125,9 +125,15 @@ class MQTTSource(MessageSource):
 
             if is_value_json_dict:
                 for key in stored_message.keys():
+
                     try:
                         stored_message[key] = float(stored_message[key])
                     except ValueError:
+                        pass
+                    except:
+                        # deleting complex json data
+                        self.logger.debug("Other error")
+                        del(stored_message[key])
                         pass
             else:
                 # if message is not a JSON DICT, only then check if we should stringify the value
