@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # forwarder.py - forwards IoT sensor data from MQTT to InfluxDB
@@ -100,9 +100,9 @@ class MQTTSource(MessageSource):
         def on_message(client, userdata, msg):
             self.logger.debug(
                 "Received MQTT message for topic %s with payload %s", msg.topic, msg.payload)
-            token_pattern = ur'(?:\w|-|\.)+'
+            token_pattern = r'(?:\w|-|\.)+'
             regex = re.compile(
-                ur'(?P<node_name>' + token_pattern + ')/(?P<sensor_address>' + token_pattern + ')/?')
+                r'(?P<node_name>' + token_pattern + ')/(?P<sensor_address>' + token_pattern + ')/?')
             match = regex.match(msg.topic)
             if match is None:
                 self.logger.warn(
@@ -124,7 +124,7 @@ class MQTTSource(MessageSource):
                 pass
 
             if is_value_json_dict:
-                for key in stored_message.keys():
+                for key in list(stored_message):
 
                     try:
                         stored_message[key] = float(stored_message[key])
@@ -165,9 +165,9 @@ def main():
     parser = argparse.ArgumentParser(
         description='MQTT to InfluxDB bridge for IOT data.')
     parser.add_argument('--mqtt-host', required=True, help='MQTT host')
-    parser.add_argument('--mqtt-port', default="1883", help='MQTT port')
+    parser.add_argument('--mqtt-port', type=int, default=1883, help='MQTT port')
     parser.add_argument('--influx-host', required=True, help='InfluxDB host')
-    parser.add_argument('--influx-port', default="8086", help='InfluxDB port')
+    parser.add_argument('--influx-port', type=int, default=8086, help='InfluxDB port')
     parser.add_argument('--influx-user', required=True,
                         help='InfluxDB username')
     parser.add_argument('--influx-pass-file', required=True,
