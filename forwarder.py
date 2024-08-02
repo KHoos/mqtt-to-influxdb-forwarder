@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # forwarder.py - forwards IoT sensor data from MQTT to InfluxDB
@@ -78,9 +78,12 @@ class MQTTSource(MessageSource):
 
     logger = logging.getLogger("forwarder.MQTTSource")
 
-    def __init__(self, host, port, node_names, stringify_values_for_measurements):
+    def __init__(self, host, port, user, password, tls, node_names, stringify_values_for_measurements):
         self.host = host
         self.port = port
+        self.mqttuser = user
+        self.mqttpassword = password
+        self.tls = tls
         self.node_names = node_names
         self.stringify = stringify_values_for_measurements
         self._setup_handlers()
@@ -154,6 +157,10 @@ class MQTTSource(MessageSource):
 
     def start(self):
         self.client.connect(self.host, self.port)
+        if self.mqttuser != 'None':
+            self.client.username_pw_set(username=self.mqttuser,password=self.mqttpassword)
+        if self.tls:
+            self.client.tls_set()
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.
         # Other loop*() functions are available that give a threaded interface and a
@@ -166,6 +173,9 @@ def main():
         description='MQTT to InfluxDB bridge for IOT data.')
     parser.add_argument('--mqtt-host', required=True, help='MQTT host')
     parser.add_argument('--mqtt-port', type=int, default=1883, help='MQTT port')
+    parser.add_argument('--mqtt-user', required=False, help='MQTT username')
+    parser.add_argument('--mqtt-password', required=False, help='MQTT password')
+    parser.add_argument('--mqtt-tls', default=False, action='store_true', help='Use TLS')
     parser.add_argument('--influx-host', required=True, help='InfluxDB host')
     parser.add_argument('--influx-port', type=int, default=8086, help='InfluxDB port')
     parser.add_argument('--influx-user', required=True,
@@ -189,7 +199,11 @@ def main():
     store = InfluxStore(host=args.influx_host, port=args.influx_port,
             username=args.influx_user, password_file=args.influx_pass_file, database=args.influx_db)
     source = MQTTSource(host=args.mqtt_host,
-                        port=args.mqtt_port, node_names=args.node_name,
+                        port=args.mqtt_port,
+                        user=args.mqtt_user,
+                        password=args.mqtt_password,
+                        tls=args.mqtt_tls,
+                        node_names=args.node_name,
                         stringify_values_for_measurements=args.stringify_values_for_measurements)
     source.register_store(store)
     source.start()
